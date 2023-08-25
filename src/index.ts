@@ -35,30 +35,15 @@ const deleteFromS3 = async (fileUrl: string) => {
     });
 };
 
-// Database connection logic
-// const connectionManager = getConnectionManager();
-// const connection = connectionManager.create({
-//   type: 'postgres',
-//   host: process.env.DATABASE_HOST,
-//   port: Number(process.env.DATABASE_PORT),
-//   username: process.env.POSTGRES_USER,
-//   password: process.env.POSTGRES_PASSWORD,
-//   database: process.env.POSTGRES_DB,
-//   synchronize: true,
-//   logging: false,
-//   entities: [User, File, Folder]
-// });
 
 createConnection(config).then(connection => {
   connection.runMigrations().then(() => {
 
-
-// connection.connect().then(() => {
   console.log('Database connected!');
 
   app.post('/register', async (req, res) => {
     try {
-      const { email, password, fullName } = req.body;
+      const { email, password, fullName, isAdmin } = req.body;
   
       const userExists = await connection.manager.findOne(User, { where: { email } });
       if (userExists) {
@@ -71,6 +56,7 @@ createConnection(config).then(connection => {
       user.email = email;
       user.password = hashedPassword;
       user.fullName = fullName;
+      user.isAdmin = isAdmin
   
       await connection.manager.save(user);
   
@@ -89,8 +75,9 @@ createConnection(config).then(connection => {
       if (!user) {
         return res.status(400).send('User not found.');
       }
-  
-      const validPassword = bcrypt.compareSync(password, user.password);
+
+   
+      const validPassword = bcrypt.compare(password, user.password);
       if (!validPassword) {
         return res.status(400).send('Invalid password.');
       }
@@ -139,8 +126,14 @@ createConnection(config).then(connection => {
     file.user = user;
     file.mimeType = req.file.mimetype;
     await connection.manager.save(file);
-    
-    res.status(201).send('File uploaded successfully!');
+
+    const response = {
+      "filekey": file.key,
+      "message": 'File uploaded successfully!'
+    }
+
+    res.status(201).send(response);
+
 });
 
 
@@ -180,44 +173,46 @@ app.get('/files', authMiddleware, async (req, res) => {
 
   
 
-app.get('/download/:filename', authMiddleware, async (req, res) => {
+app.get('/download/:filekey', authMiddleware, async (req, res) => {
 const userId = (req as any).user?.id;
-const key = req.params.filename
+const key = req.params.filekey
 
 const fileRecord = await connection.manager.findOne(File, {
     where: {
       key: key
-    }
+    },
+    relations: ["user"]
   });
 if (!fileRecord) {
     return res.status(404).send('File not found.');
 }
 
 if (fileRecord.user.id !== userId) {
-    return res.status(403).send('You do not have permission to download this file.');
+  return res.status(403).send('You do not have permission to download this file.');
 }
-    const filename = req.params.filename;
+
+    const filekey = req.params.filekey;
   
-    try {
-      const fileStream = s3.getObject({
-        Bucket: S3_BUCKET_NAME!,
-        Key: filename,
-      }).createReadStream();
+    const fileStream = s3.getObject({
+      Bucket: S3_BUCKET_NAME!,
+      Key: filekey,
+  }).createReadStream();
   
-      fileStream.pipe(res);
-    } catch (error) {
-      res.status(500).send('Error downloading the file.');
-    }
+  fileStream.on('error', (error) => {
+      return res.status(500).send('Error downloading the file.');
+  });
+  
+  fileStream.pipe(res);  
   });
 
-  app.post('/markUnsafe/:fileId', authMiddleware, async (req, res) => {
+  app.post('/markUnsafe/:filekey', authMiddleware, async (req, res) => {
     const userId = (req as any).user?.id;
 
     try {
         const user = await connection.manager.findOne(User, {where: { id: userId }});
         if (!user?.isAdmin) return res.status(403).send('Only admins can mark files as unsafe.');
 
-        const file = await connection.manager.findOne(File, { where: { id: Number(req.params.fileId) }});
+        const file = await connection.manager.findOne(File, { where: { key: req.params.filekey }});
         if (!file) return res.status(404).send('File not found.');
 
         await deleteFromS3(file.key);
@@ -231,14 +226,14 @@ if (fileRecord.user.id !== userId) {
     }
 });
 
-app.get('/stream/:filename', authMiddleware, async (req, res) => {
-const key = req.params.filename;
+app.get('/stream/:filekey', authMiddleware, async (req, res) => {
+const key = req.params.filekey;
 const userId = (req as any).user?.id;
 
 const fileRecord = await connection.manager.findOne(File, {
     where: {
       key: key
-    }
+    },relations: ["user"]
   });
 if (!fileRecord) {
     return res.status(404).send('File not found.');
@@ -247,35 +242,36 @@ if (!fileRecord) {
 if (fileRecord.user.id !== userId) {
     return res.status(403).send('You do not have permission to download this file.');
 }
-const filename = req.params.filename;
+const filekey = req.params.filekey;
 
 try {
-    const { Range } = req.headers;
+    const Range  = req.headers.range;
+
     const fileObj = await s3.headObject({
         Bucket: S3_BUCKET_NAME!,
-        Key: filename,
+        Key: filekey,
     }).promise();
 
     const fileSize = fileObj.ContentLength!;
     const rangeValue = typeof Range === 'string' ? Range : Range![0];
     const start = Number((rangeValue.match(/bytes=(\d+)-/)?.[1] || '0'));
-
+    console.log(fileSize)
+    console.log(rangeValue)
+    console.log(start)
     const end = fileSize - 1;
     const chunkSize = (end - start) + 1;
 
     const fileStream = s3.getObject({
         Bucket: S3_BUCKET_NAME!,
-        Key: filename,
+        Key: filekey,
         Range: `bytes=${start}-${end}`,
     }).createReadStream();
-
     res.header({
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
         'Content-Type': fileRecord.mimeType,
     });
-
         res.status(206);
         fileStream.pipe(res);
     } catch (error) {

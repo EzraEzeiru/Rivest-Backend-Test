@@ -1,4 +1,7 @@
 import { ConnectionOptions } from 'typeorm';
+import { User } from './entity/user.entity';
+import { File } from './entity/file.entity';
+import { Folder } from './entity/folder.entity';
 
 // Load environment variables
 const {
@@ -10,8 +13,6 @@ const {
 } = process.env;
 
 const isProduction = process.env.NODE_ENV === 'production';
-console.log(`${__dirname}`)
-console.log(isProduction)
 const config: ConnectionOptions = {
   type: 'postgres',
   host: DATABASE_HOST,
@@ -21,7 +22,7 @@ const config: ConnectionOptions = {
   database: POSTGRES_DB,
   synchronize: false,
   logging: true,
-  entities: [`${__dirname}/entity/**/*.entity.{${isProduction ? 'js' : 'ts'}}`],
+  entities: [User, File, Folder],
   migrations: [`${__dirname}/migrations/**/*{.${isProduction ? 'js' : 'ts'}}`],
   subscribers: [`${__dirname}/subscriber/**/*{.${isProduction ? 'js' : 'ts'}}`],
   cli: {
