@@ -12,6 +12,7 @@ import authMiddleware from './authMiddleware';
 import { Folder } from './entity/folder.entity';
 import * as jwt from 'jsonwebtoken';
 import config from './ormconfig'
+// import { deleteFromS3 } from './S3delete';
 
 
 dotenv.config();
@@ -42,6 +43,7 @@ createConnection(config).then(connection => {
   console.log('Database connected!');
 
   app.post('/register', async (req, res) => {
+    
     try {
       const { email, password, fullName, isAdmin } = req.body;
   
@@ -77,7 +79,7 @@ createConnection(config).then(connection => {
       }
 
    
-      const validPassword = bcrypt.compare(password, user.password);
+      const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
         return res.status(400).send('Invalid password.');
       }
@@ -157,6 +159,7 @@ app.post('/createFolder', authMiddleware, async (req, res) => {
 app.get('/files', authMiddleware, async (req, res) => {
   const userId = (req as any).user?.id; 
 
+    
     const files = await connection.manager.find(File, {
         where: {
           user: { id: userId }
@@ -285,4 +288,11 @@ try {
   });
 })
 }).catch(error => console.log(error));
+
+export default app;
+
+export const databaseConnection = createConnection(config);
+
+
+
 
