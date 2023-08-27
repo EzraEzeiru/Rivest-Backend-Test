@@ -6,7 +6,6 @@
   "scripts": {
     "test": "jest",
     "test:index": "jest ./__tests__/index.test.ts",
-    "prebuild": "npm install -g typescript",
     "build": "tsc",
     "dev": "NODE_PATH=src nodemon --watch src -e ts --exec ts-node -r dotenv/config src/index.ts",
     "typeorm": "ts-node -P ./tsconfig.json ./node_modules/.bin/typeorm",
