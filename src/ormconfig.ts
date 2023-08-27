@@ -30,6 +30,9 @@ const config: ConnectionOptions = {
     migrationsDir: 'migrations',
     subscribersDir: isProduction ? 'dist/subscriber' : 'src/subscriber',
   },
+  ssl: isProduction ? {
+    rejectUnauthorized: false
+  } : false,
 };
 console.log(config.entities)
 
