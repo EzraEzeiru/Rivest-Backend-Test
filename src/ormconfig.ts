@@ -27,13 +27,14 @@ const config: ConnectionOptions = {
   subscribers: [`${__dirname}/subscriber/**/*{.${isProduction ? 'js' : 'ts'}}`],
   cli: {
     entitiesDir: isProduction ? 'dist/entity' : 'src/entity',
-    migrationsDir: 'migrations',
+    migrationsDir: 'src/migrations',
     subscribersDir: isProduction ? 'dist/subscriber' : 'src/subscriber',
   },
-  ssl: isProduction ? {
+  ssl: {
     rejectUnauthorized: false
-  } : false,
+  }
 };
 console.log(config.entities)
+console.log(isProduction)
 
 export default config;
