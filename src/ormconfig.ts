@@ -20,14 +20,15 @@ const config: ConnectionOptions = {
   username: POSTGRES_USER,
   password: POSTGRES_PASSWORD,
   database: POSTGRES_DB,
+  schema: 'public',
   synchronize: false,
   logging: true,
   entities: [User, File, Folder],
-  migrations: [`${__dirname}/migrations/**/*{.${isProduction ? 'js' : 'ts'}}`],
+  migrations: [`${__dirname}/migrations/**/*.ts`],
   subscribers: [`${__dirname}/subscriber/**/*{.${isProduction ? 'js' : 'ts'}}`],
   cli: {
     entitiesDir: isProduction ? 'dist/entity' : 'src/entity',
-    migrationsDir: 'src/migrations',
+    migrationsDir: isProduction ? 'dist/migrations' : 'src/migrations',
     subscribersDir: isProduction ? 'dist/subscriber' : 'src/subscriber',
   },
   ssl: {
