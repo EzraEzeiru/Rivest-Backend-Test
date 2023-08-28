@@ -6,14 +6,12 @@ import { User } from './entity/user.entity';
 import { File } from './entity/file.entity';
 import upload from './upload';
 import { s3, S3_BUCKET_NAME } from './s3config';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import authConfig from './authConfig';
 import authMiddleware from './authMiddleware';
 import { Folder } from './entity/folder.entity';
 import * as jwt from 'jsonwebtoken';
 import config from './ormconfig'
-// import { deleteFromS3 } from './S3delete';
-
 
 dotenv.config();
 
@@ -52,7 +50,7 @@ createConnection(config).then(connection => {
         return res.status(400).send('User already exists.');
       }
   
-      const hashedPassword = bcrypt.hashSync(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 10);
   
       let user = new User();
       user.email = email;
@@ -78,9 +76,8 @@ createConnection(config).then(connection => {
         return res.status(400).send('User not found.');
       }
 
-   
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
+      const validPassword = await bcrypt.compare(user.password, password);
+      if (validPassword) {
         return res.status(400).send('Invalid password.');
       }
   

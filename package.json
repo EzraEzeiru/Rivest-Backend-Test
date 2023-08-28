@@ -8,6 +8,7 @@
     "test:index": "jest ./__tests__/index.test.ts",
     "migration:generate": "ts-node ./node_modules/typeorm/cli.js migration:generate --config src/ormconfig.ts -n",
     "migration:run": "ts-node ./node_modules/typeorm/cli.js migration:run --config src/ormconfig.ts",
+    "migration:create": "ts-node ./node_modules/typeorm/cli.js migration:create --config src/ormconfig.ts -n",
     "build": "tsc",
     "typeorm": "typeorm-ts-node-esm",
     "start": "npm run migration:run && node dist/index.js"
@@ -20,6 +21,7 @@
     "@types/bcrypt": "^5.0.0",
     "@types/bcryptjs": "^2.4.2",
     "@types/node": "^20.5.2",
+    "argon2": "^0.31.0",
     "aws-sdk": "^2.800.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
