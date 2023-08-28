@@ -76,7 +76,7 @@ createConnection(config).then(connection => {
         return res.status(400).send('User not found.');
       }
 
-      const validPassword = await bcrypt.compare(password, user.password);
+      const validPassword = bcrypt.compareSync(String(password), String(user.password));
       if (!validPassword) {
         return res.status(400).send('Invalid password.');
       }
